@@ -33,10 +33,10 @@ Solutions provided by teaching team.
 
 ### Data wrangling & description 
 
-I first describe the raw data using the `str()` and `skimr::skim()` functions.
+First, I import the dataset using `read_csv()` and rename empty observations to "na" ("", "Unknown"). To describe the raw data, I use the `str()` and `skimr::skim()` functions.
 
 ```{r, warning = FALSE}
-homicide_df_raw = read_csv("./data/homicide-data.csv")
+homicide_df_raw = read_csv("./data/homicide-data.csv", na = c("","Unknown"))
 
 str(homicide_df_raw)
 skimr::skim(homicide_df_raw)
@@ -44,28 +44,43 @@ skimr::skim(homicide_df_raw)
 
 The "homicide_df_raw" dataset contains `r ncol(homicide_df_raw)` variables and `r nrow(homicide_df_raw)` observations. Details on the nature of its variables and summary values are found in the outputs above.
 
-Then, I import the dataset using `read_csv()`, rename empty observations to "na" ("", "Unknown") and wrangle data as per problem instructions. This includes:
+Then, I wrangle data as per problem instructions. This includes:
 
 * Create a new "city_state" variable (e.g. “Baltimore, MD”) with `mutate()` and order by alphabetical orden using `str_c()`.
 * Create a new "resolution" variable using the `case_when()` syntaxis, indicating whehter a case is resolved or not (those for which the disposition is “Closed without arrest” or “Open/No arrest”).
+* Note one entry "Tulsa, AL" is excluded using `filter()`, as it is unclear whether it refers to Tulsa, Oklahoma or Birmingham, Alabama (this entry becomes apparent on the next section, under the "US_summary" data frame, and is then retroactively amended).
 
 ```{r}
-homicide_df = read_csv("./data/homicide-data.csv", na = c("","Unknown")) %>% 
+homicide_df = homicide_df_raw %>% 
   mutate(city_state = str_c(city, state, sep = ", "),
          resolution = case_when(
            disposition == "Closed without arrest" ~ "unsolved",
            disposition == "Open/No arrest" ~ "unsolved",
            disposition == "Closed by arrest" ~ "solved"
          )) %>% 
-  relocate(city_state)
+  relocate(city_state) %>% 
+  filter(city_state != "Tulsa, AL")
 ```
 
-**PENDING** : Then summarize within cities to obtain the total number of homicides and the number of unsolved homicides.
+Then, I summarize within cities using `group_by()` to obtain the total number of homicides ("n") and the number of unsolved homicides ("unsolved") in a table using `knitr::kable()`. 
+
+```{r}
+US_summary = 
+  homicide_df %>% 
+  group_by(city_state) %>% 
+  summarize(
+    n = n(),
+    unsolved = sum(resolution == "unsolved"),
+      ) %>% 
+  knitr::kable()
+
+US_summary
+```
 
 
 ### Baltimore city estimates 
 
-Next, I use the `prop.test` function to perform a test of equal proportions (that is, testing the null that the proportions (probabilities of success) in several groups are the same, or that they equal certain given values.)
+Next, I use the `prop.test` function to perform a test of equal proportions *(that is, testing the null that the proportions (probabilities of success) in several groups are the same, or that they equal certain given values.)*
 
 More specifically, for the city of Baltimore, MD, I estimate the **proportion of homicides that are unsolved**. To do so, first a summary dataframe is generated containing the sum of "unsolved" crimes and the overall sample size ("n"). Then, 
 A "baltimore_test" R object (a list) is generated as an output of the `prop.test`, to which then I apply `broom::tidy`. It contains the estimated proportion and confidence intervals from the test of equal proportions.
@@ -89,45 +104,51 @@ baltimore_test %>%
   broom::tidy()
 ```
 
+As a result of this test, Baltimore, MD has a proportion of 0.646 (0.628, 0.663) unresolved crimes.
+
 
 ### Iteration on multiple cities estimates 
 
-Prompt: Now run prop.test for each of the cities in your dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. Do this within a “tidy” pipeline, making use of purrr::map, purrr::map2, list columns and unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city.
+Next, I run the `prop.test()` for each of the cities in the "homicide_df" dataset. To extract both the proportion of unsolved homicides and the confidence interval for each of the cities, I follow a “tidy” pipeline which entails:.
 
-First, Write a function.
+1. **Writing a function that runs the `prop.test()` in each of the cities**. The `prop_test_unresolved` uses the "US_summary" created above (without the `knitr::kable()` chunk) and a similar structure to the equal proportions test applied to Baltimore, MD.
 
 ```{r}
-prop_test_function = function(city_df) {
+prop_test_unresolved = function(homicide_df) {
   
-  city_summary = 
-    city_df %>% 
-    summarize(
-      unsolved = sum(resolution == "unsolved"),
-      n = n()
-    )
+  cities_summary = 
+  homicide_df %>% 
+  summarize(
+    n = n(),
+    unsolved = sum(resolution == "unsolved"),
+      )
   
   city_test = prop.test(
-    x = city_summary %>% pull(unsolved), 
-    n = city_summary %>% pull(n))
+    x = cities_summary %>% pull(unsolved), 
+    n = cities_summary %>% pull(n))
   
   return(city_test)
 }
 ```
 
-Second, iterate across all cities.
+2. **Iterating across all cities**. To do so, the data is first nested, then `purrr::map()` is applied indicating the list ("data") I iterate over, and the function to apply (`prop_test_homicide()`. Then, a "tidy_results" object is generated with the results, which is then unnested to select the variables of interest ("city_state", "estimate", and confidence intervals). Results are visualized below using `knitr::kable()`.
 
 ```{r}
 results_df = 
   homicide_df %>% 
   nest(data = uid:resolution) %>% 
   mutate(
-    test_results = map(data, prop_test_function),
+    test_results = map(data, prop_test_unresolved),
     tidy_results = map(test_results, broom::tidy)
   ) %>% 
   select(city_state, tidy_results) %>% 
   unnest(tidy_results) %>% 
   select(city_state, estimate, starts_with("conf"))
+
+results_df %>% 
+  knitr::kable(digits = 3)
 ```
+
 
 ### Data visualization
 
