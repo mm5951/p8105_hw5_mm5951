@@ -35,16 +35,16 @@ Solutions provided by teaching team.
 
 I first describe the raw data using the `str()` and `skimr::skim()` functions.
 
-```{r}
+```{r, warning = FALSE}
 homicide_df_raw = read_csv("./data/homicide-data.csv")
 
 str(homicide_df_raw)
 skimr::skim(homicide_df_raw)
 ```
 
-The "homicide_df_raw" dataset contains `ncol(homicide_df_raw)` variables and `ncol(homicide_df_raw)` observations. Details on the nature of its variables and summary values are found in the outputs above.
+The "homicide_df_raw" dataset contains `r ncol(homicide_df_raw)` variables and `r nrow(homicide_df_raw)` observations. Details on the nature of its variables and summary values are found in the outputs above.
 
-Then, I import the dataset using `read_csv()`, drop empty observations ("", "na", "Unknown") and wrangle data as per problem instructions. This includes:
+Then, I import the dataset using `read_csv()`, rename empty observations to "na" ("", "Unknown") and wrangle data as per problem instructions. This includes:
 
 * Create a new "city_state" variable (e.g. “Baltimore, MD”) with `mutate()` and order by alphabetical orden using `str_c()`.
 * Create a new "resolution" variable using the `case_when()` syntaxis, indicating whehter a case is resolved or not (those for which the disposition is “Closed without arrest” or “Open/No arrest”).
@@ -57,8 +57,7 @@ homicide_df = read_csv("./data/homicide-data.csv", na = c("","Unknown")) %>%
            disposition == "Open/No arrest" ~ "unsolved",
            disposition == "Closed by arrest" ~ "solved"
          )) %>% 
-  relocate(city_state) %>% 
-  filter(city_state != "TulsaAL")
+  relocate(city_state)
 ```
 
 **PENDING** : Then summarize within cities to obtain the total number of homicides and the number of unsolved homicides.
@@ -66,20 +65,26 @@ homicide_df = read_csv("./data/homicide-data.csv", na = c("","Unknown")) %>%
 
 ### Baltimore city estimates 
 
-Prompt: For the city of Baltimore, MD, use the prop.test function to estimate the proportion of homicides that are unsolved; save the output of prop.test as an R object, apply the broom::tidy to this object and pull the estimated proportion and confidence intervals from the resulting tidy dataframe.
+Next, I use the `prop.test` function to perform a test of equal proportions (that is, testing the null that the proportions (probabilities of success) in several groups are the same, or that they equal certain given values.)
+
+More specifically, for the city of Baltimore, MD, I estimate the **proportion of homicides that are unsolved**. To do so, first a summary dataframe is generated containing the sum of "unsolved" crimes and the overall sample size ("n"). Then, 
+A "baltimore_test" R object (a list) is generated as an output of the `prop.test`, to which then I apply `broom::tidy`. It contains the estimated proportion and confidence intervals from the test of equal proportions.
 
 ```{r}
 baltimore_df = homicide_df %>% 
-  filter(city_state == "BaltimoreMD")
+  filter(city_state == "Baltimore, MD")
+
 baltimore_summary = 
   baltimore_df %>% 
   summarize(
     unsolved = sum(resolution == "unsolved"),
     n = n()
   )
+
 baltimore_test = prop.test(
   x = baltimore_summary %>% pull(unsolved), 
-  n = baltimore_summary %>% pull(n))
+  n = baltimore_summary %>% pull(n)) 
+
 baltimore_test %>% 
   broom::tidy()
 ```
