@@ -131,7 +131,7 @@ prop_test_unresolved = function(homicide_df) {
 }
 ```
 
-2. **Iterating across all cities**. To do so, the data is first nested, then `purrr::map()` is applied indicating the list ("data") I iterate over, and the function to apply (`prop_test_homicide()`. Then, a "tidy_results" object is generated with the results, which is then unnested to select the variables of interest ("city_state", "estimate", and confidence intervals). Results are visualized below using `knitr::kable()`.
+2. **Iterating across all cities**. To do so, the data is first nested, then `purrr::map()` is applied indicating the list ("data") I iterate over, and the function to apply (`prop_test_homicide()`. Then, a "tidy_results" object is generated with the results, which is then unnested to select the variables of interest ("city_state", "estimate", and confidence intervals (CI)). Results are visualized below using `knitr::kable()`.
 
 ```{r}
 results_df = 
@@ -152,9 +152,11 @@ results_df %>%
 
 ### Data visualization
 
-Prompt: Create a plot that shows the estimates and CIs for each city – check out geom_errorbar for a way to add error bars based on the upper and lower limits. Organize cities according to the proportion of unsolved homicides.
+Finally, results as above are summarised in a plot that shows the estimates and CIs for each city. In doing so:
 
-Make a plot showing estimates and confidence intervals for each cities and organize cities according to the proportion of unsolved homicides.
+* Cities are reordered by estimate of unresolved crimes using `fct_reorder()`;
+* Data is visualized using `ggplot()` and the scatterplot `geom_point()`;
+* CIs are visualized using `geom_errorbar()`
 
 ```{r}
 results_df %>% 
@@ -162,8 +164,10 @@ results_df %>%
   ggplot(aes(x = city_state, y = estimate)) +
   geom_point() +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
-  labs(title = "Estimates of Proportions of Homicides 
-       that are Unsolved and Confidence Interval for Each Cities") +
+  labs(
+    title = "Estimated proportion of unresolved homicides and CI",
+    x = "City, State",
+    y = "Estimate")+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
         plot.title = element_text(hjust = 0.5))
 ```
