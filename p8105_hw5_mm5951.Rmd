@@ -33,11 +33,25 @@ Solutions provided by teaching team.
 
 ### Data wrangling & description 
 
-Prompt: Describe the raw data. Create a city_state variable (e.g. “Baltimore, MD”) and then summarize within cities to obtain the total number of homicides and the number of unsolved homicides (those for which the disposition is “Closed without arrest” or “Open/No arrest”).
+I first describe the raw data using the `str()` and `skimr::skim()` functions.
 
 ```{r}
-homicide_df = read.csv("./data/homicide-data.csv", na = c("","Unknown")) %>% 
-  mutate(city_state = str_c(city, state),
+homicide_df_raw = read_csv("./data/homicide-data.csv")
+
+str(homicide_df_raw)
+skimr::skim(homicide_df_raw)
+```
+
+The "homicide_df_raw" dataset contains `ncol(homicide_df_raw)` variables and `ncol(homicide_df_raw)` observations. Details on the nature of its variables and summary values are found in the outputs above.
+
+Then, I import the dataset using `read_csv()`, drop empty observations ("", "na", "Unknown") and wrangle data as per problem instructions. This includes:
+
+* Create a new "city_state" variable (e.g. “Baltimore, MD”) with `mutate()` and order by alphabetical orden using `str_c()`.
+* Create a new "resolution" variable using the `case_when()` syntaxis, indicating whehter a case is resolved or not (those for which the disposition is “Closed without arrest” or “Open/No arrest”).
+
+```{r}
+homicide_df = read_csv("./data/homicide-data.csv", na = c("","Unknown")) %>% 
+  mutate(city_state = str_c(city, state, sep = ", "),
          resolution = case_when(
            disposition == "Closed without arrest" ~ "unsolved",
            disposition == "Open/No arrest" ~ "unsolved",
@@ -46,6 +60,8 @@ homicide_df = read.csv("./data/homicide-data.csv", na = c("","Unknown")) %>%
   relocate(city_state) %>% 
   filter(city_state != "TulsaAL")
 ```
+
+**PENDING** : Then summarize within cities to obtain the total number of homicides and the number of unsolved homicides.
 
 
 ### Baltimore city estimates 
@@ -73,10 +89,58 @@ baltimore_test %>%
 
 Prompt: Now run prop.test for each of the cities in your dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. Do this within a “tidy” pipeline, making use of purrr::map, purrr::map2, list columns and unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city.
 
-### Data visaulization
+First, Write a function.
+
+```{r}
+prop_test_function = function(city_df) {
+  
+  city_summary = 
+    city_df %>% 
+    summarize(
+      unsolved = sum(resolution == "unsolved"),
+      n = n()
+    )
+  
+  city_test = prop.test(
+    x = city_summary %>% pull(unsolved), 
+    n = city_summary %>% pull(n))
+  
+  return(city_test)
+}
+```
+
+Second, iterate across all cities.
+
+```{r}
+results_df = 
+  homicide_df %>% 
+  nest(data = uid:resolution) %>% 
+  mutate(
+    test_results = map(data, prop_test_function),
+    tidy_results = map(test_results, broom::tidy)
+  ) %>% 
+  select(city_state, tidy_results) %>% 
+  unnest(tidy_results) %>% 
+  select(city_state, estimate, starts_with("conf"))
+```
+
+### Data visualization
 
 Prompt: Create a plot that shows the estimates and CIs for each city – check out geom_errorbar for a way to add error bars based on the upper and lower limits. Organize cities according to the proportion of unsolved homicides.
 
+Make a plot showing estimates and confidence intervals for each cities and organize cities according to the proportion of unsolved homicides.
+
+```{r}
+results_df %>% 
+  mutate(city_state = fct_reorder(city_state, estimate)) %>% 
+  ggplot(aes(x = city_state, y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+  labs(title = "Estimates of Proportions of Homicides 
+       that are Unsolved and Confidence Interval for Each Cities") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
+```
 
 
 
