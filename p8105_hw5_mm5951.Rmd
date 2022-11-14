@@ -33,12 +33,11 @@ Solutions provided by teaching team.
 
 ### Data wrangling & description 
 
-First, I import the dataset using `read_csv()` and rename empty observations to "na" ("", "Unknown"). To describe the raw data, I use the `str()` and `skimr::skim()` functions.
+First, I import the dataset using `read_csv()` and rename empty observations to "na" ("", "Unknown"). To describe the raw data, I use the `skimr::skim()` function.
 
 ```{r, warning = FALSE}
 homicide_df_raw = read_csv("./data/homicide-data.csv", na = c("","Unknown"))
 
-str(homicide_df_raw)
 skimr::skim(homicide_df_raw)
 ```
 
