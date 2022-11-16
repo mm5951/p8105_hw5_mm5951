@@ -35,7 +35,7 @@ Solutions provided by teaching team.
 
 First, I import the dataset using `read_csv()` and rename empty observations to "na" ("", "Unknown"). To describe the raw data, I use the `skimr::skim()` function.
 
-```{r, warning = FALSE}
+```{r, warning = FALSE, message = FALSE}
 homicide_df_raw = read_csv("./data/homicide-data.csv", na = c("","Unknown"))
 
 skimr::skim(homicide_df_raw)
@@ -171,11 +171,12 @@ results_df %>%
         plot.title = element_text(hjust = 0.5))
 ```
 
+Note Chicago is an outlier, with a higher proportion of unresolved homicides (above 70%), when compared to the rest of US cities.
 
 
 ## Problem 3
 
-**PROMPT:** When designing an experiment or analysis, a common question is whether it is likely that a true effect will be detected – put differently, whether a false null hypothesis will be rejected. The probability that a false null hypothesis is rejected is referred to as power, and it depends on several factors, including: the sample size; the effect size; and the error variance. In this problem, you will conduct a simulation to explore power in a one-sample t-test.
+**PROMPT:** *When designing an experiment or analysis, a common question is whether it is likely that a true effect will be detected – put differently, whether a false null hypothesis will be rejected. The probability that a false null hypothesis is rejected is referred to as power, and it depends on several factors, including: the sample size; the effect size; and the error variance. In this problem, you will conduct a simulation to explore power in a one-sample t-test.*
 
 ### Dataset generation
 
@@ -192,7 +193,6 @@ Next, through repeated sampling I generate 5,000 datasets. In order to do so, I 
 * generate a "output" object which contains 5,000 lists (iterations) for each pre-set mean (0:6) with fixed sample size of n=30, and columns for the "true_mean", "sample_mean" and "p_value";
 * create a `combine_function()` that runs a one-sample t-test using α=0.05 (`t.test()` within `broom::tidy()`) in each of the samples;
 * generate a "result" object which contains 7 lists, one for each pre-set mean (0:6).
-* 
 
 ```{r}
 n = 30
@@ -220,7 +220,6 @@ combine_function = function(y){
 result = map(true_mean, combine_function)
 ```
 
-
 Finally, I generate a "result_df" dataframe that contains each of the 5,000 samples for the 7 given means (0:7), with the estimated sample mean, the t-test p-value result, and whether the null hypothesis is rejected (p<0.05) or not (p>=0.05).
 
 ```{r}
@@ -236,12 +235,12 @@ result_df = result_df %>%
 
 ### Data visualization
 
-Next, I make a plot showing the proportion of times the null (H0) was rejected on the y axis and the true value of μ on the x axis. 
+Next, I make a plot showing the **proportion of times the null (H0) was rejected on the y axis and the true value of μ on the x axis**. 
 
 ```{r}
 power_plot = result_df %>%
   group_by(true_mean) %>% 
-  summarize(power = sum(reject)/5000) %>% 
+  summarize(power = sum(reject)/50) %>% 
   ggplot(aes(x = true_mean, y = power)) +
   geom_point(aes(colour = true_mean)) +
   geom_line(alpha = 0.3) +
@@ -253,14 +252,9 @@ power_plot = result_df %>%
 power_plot
 ```
 
-The lower the mean, the lower the proportion of times that the null hypothesis was rejected. That means, if the effect size of the intervention is large, it is possible to detect such an effect in smaller sample numbers, whereas a smaller effect size would require larger sample sizes.
+The lower the true mean, the lower the proportion of times that the null hypothesis was rejected. That means, if the effect size of the intervention is large, it is possible to detect such an effect in smaller sample numbers, whereas a smaller effect size would require larger sample sizes.
 
-
-Next, I make a two-pannel plot showing:
-
-* the average estimate of μ̂ on the y axis and the true value of μ on the x axis. 
-* the average estimate of μ̂ only in samples for which the null was rejected on the y axis and the true value of μ
- on the x axis. 
+Next, I make another plot showing the **average estimate of μ̂ on the y axis and the true value of μ on the x axis**. Note that the direct relationship shows that the average repeated samples mean is quite approximate to the true mean.
  
 ```{r}
 means_plot = result_df %>%
@@ -268,29 +262,37 @@ means_plot = result_df %>%
   summarize(mean_sample = mean(sample_mean)) %>%
   ggplot(aes(x = true_mean, y = mean_sample)) +
   geom_point(aes(colour = true_mean)) +
-  labs(title = "Total Sample",
+  geom_line(alpha = 0.3) +
+  labs(title = "True and Estimate Mean: Total Samples",
        x = "True Mean", 
-       y = "Sample Mean") +
+       y = "Average of Estimated Means") +
   scale_x_continuous(limits = c(0,6), breaks = seq(0,6,1)) +
-  scale_y_continuous(limits = c(-2,7), breaks = seq(-2,7,1)) +
+  scale_y_continuous(limits = c(-1,7), breaks = seq(-1,7,1)) +
   theme(plot.title = element_text(hjust = 0.5))
 
+means_plot
+```
+
+Finally, I make one last plot showing the **average estimate of μ̂ only in samples for which the null was rejected on the y axis and the true value of μ on the x axis**. 
+
+```{r}
 means_reject = result_df %>%
   group_by(true_mean) %>%
   filter(p.value < 0.05) %>%
   summarize(mean_sample = mean(sample_mean)) %>%
   ggplot(aes(x = true_mean, y = mean_sample)) +
   geom_point(aes(colour = true_mean)) +
-  labs(title = "Rejected Null Sample",
+  geom_line(alpha = 0.3) +
+  labs(title = "True and Estimate Mean: Rejected H0 Samples",
        x = "True Mean", 
-       y = "Sample Mean") +
+       y = "Average of Estimated Means") +
   scale_x_continuous(limits = c(0,6), breaks = seq(0,6,1)) +
-  scale_y_continuous(limits = c(-2,7), breaks = seq(-2,7,1)) +
+  scale_y_continuous(limits = c(-1,7), breaks = seq(-1,7,1)) +
   theme(plot.title = element_text(hjust = 0.5))
 
-means_plot
 means_reject
 ```
 
-**PENDING** Is the sample average of μ̂ across tests for which the null is rejected approximately equal to the true value of μ? Why or why not?
+Note the sample average of μ̂ across tests for which the null (H0) is rejected is not always equal to the true value of μ (especially for true means 0:2). That is related to the effect size and power relation that was depicted above: the smaller the effect size, the bigger power that it is required to reject the null hypothesis. With a fix sample size, in this example it becomes apparent how the estimated mean and true mean do not match for smaller values, but quite accurately do for bigger ones.
 
+*That's it for homework 5!*
