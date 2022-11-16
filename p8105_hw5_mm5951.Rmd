@@ -189,9 +189,10 @@ raw_dataset = rnorm(30, 0, 5) %>%
 Next, through repeated sampling I generate 5,000 datasets. In order to do so, I will:
 
 * create a function `norm_dataset()` that generates a dataset following a normal distribution x∼Normal[μ,σ] with the pre-set n, sd and true_mean;
-* generate a "output" object which contains 5,000 lists (iterations) with fixed sample size of n=30, and columns for the "true_mean", "sample_mean" and "p_value";
+* generate a "output" object which contains 5,000 lists (iterations) for each pre-set mean (0:6) with fixed sample size of n=30, and columns for the "true_mean", "sample_mean" and "p_value";
 * create a `combine_function()` that runs a one-sample t-test using α=0.05 (`t.test()` within `broom::tidy()`) in each of the samples;
 * generate a "result" object which contains 7 lists, one for each pre-set mean (0:6).
+* 
 
 ```{r}
 n = 30
@@ -220,11 +221,44 @@ result = map(true_mean, combine_function)
 ```
 
 
+Finally, I generate a "result_df" dataframe that contains each of the 5,000 samples for the 7 given means (0:7), with the estimated sample mean, the t-test p-value result, and whether the null hypothesis is rejected (p<0.05) or not (p>=0.05).
+
+```{r}
+result_df = data.frame(c(1:5000),final[[1]])
+for (i in 2:7) {
+  df = data.frame(c(1:5000),final[[i]])
+  result_df = rbind(result_df, df)
+}
+
+result_df = result_df %>%
+  mutate(reject = ifelse(p.value < 0.05, TRUE, FALSE))
+```
+
 ### Data visualization
 
-Make a plot showing the proportion of times the null was rejected (the power of the test) on the y axis and the true value of μ on the x axis. Describe the association between effect size and power.
+Next , I make a plot showing the proportion of times the null (H0) was rejected on the y axis and the true value of μ on the x axis. 
 
-Make a plot showing the average estimate of μ̂
+```{r}
+power_plot = result_df %>%
+  group_by(true_mean) %>% 
+  summarize(power = sum(reject)/50) %>% 
+  ggplot(aes(x = true_mean, y = power)) +
+  geom_point(aes(colour = true_mean)) +
+  geom_line(alpha = 0.3) +
+  labs(x = "True Mean", 
+       y = "Proportion of times  null was rejected") +
+  scale_x_continuous(breaks = seq(0,6,by = 1)) +
+  scale_y_continuous(limits = c(0,1), breaks = seq(0,1,by = 0.2))
+reject_plot
+```
+
+
+Describe the association between effect size and power ()
+
+
+
+
+Next, I make a plot showing the average estimate of μ̂
  on the y axis and the true value of μ
  on the x axis. 
  
