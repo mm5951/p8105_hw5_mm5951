@@ -224,9 +224,9 @@ result = map(true_mean, combine_function)
 Finally, I generate a "result_df" dataframe that contains each of the 5,000 samples for the 7 given means (0:7), with the estimated sample mean, the t-test p-value result, and whether the null hypothesis is rejected (p<0.05) or not (p>=0.05).
 
 ```{r}
-result_df = data.frame(c(1:5000),final[[1]])
+result_df = data.frame(c(1:5000),result[[1]])
 for (i in 2:7) {
-  df = data.frame(c(1:5000),final[[i]])
+  df = data.frame(c(1:5000),result[[i]])
   result_df = rbind(result_df, df)
 }
 
@@ -246,14 +246,14 @@ power_plot = result_df %>%
   geom_point(aes(colour = true_mean)) +
   geom_line(alpha = 0.3) +
   labs(x = "True Mean", 
-       y = "Proportion of times  null was rejected") +
+       y = "Proportion of times the H0 is rejected") +
   scale_x_continuous(breaks = seq(0,6,by = 1)) +
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1,by = 0.2))
 
 power_plot
 ```
 
-The lower the mean, the lower the proportion of times that the null hypothesis was rejected. That means, there's a direct association between effect size and power. **REVIEW**
+The lower the mean, the lower the proportion of times that the null hypothesis was rejected. That means, if the effect size of the intervention is large, it is possible to detect such an effect in smaller sample numbers, whereas a smaller effect size would require larger sample sizes.
 
 
 Next, I make a two-pannel plot showing:
@@ -288,7 +288,8 @@ means_reject = result_df %>%
   scale_y_continuous(limits = c(-2,7), breaks = seq(-2,7,1)) +
   theme(plot.title = element_text(hjust = 0.5))
 
-means_plot + means_reject
+means_plot
+means_reject
 ```
 
 **PENDING** Is the sample average of μ̂ across tests for which the null is rejected approximately equal to the true value of μ? Why or why not?
