@@ -175,4 +175,118 @@ results_df %>%
 
 ## Problem 3
 
-To be completed
+**PROMPT:** When designing an experiment or analysis, a common question is whether it is likely that a true effect will be detected – put differently, whether a false null hypothesis will be rejected. The probability that a false null hypothesis is rejected is referred to as power, and it depends on several factors, including: the sample size; the effect size; and the error variance. In this problem, you will conduct a simulation to explore power in a one-sample t-test.
+
+### Dataset generation
+
+First, I generate a "raw dataset" with the indicated sample size (n=30), mean (μ=0) and standard deviation (σ=5):
+
+```{r}
+raw_dataset = rnorm(30, 0, 5) %>% 
+  as_tibble()
+```
+
+Next, through repeated sampling I generate 5,000 datasets. In order to do so, I will
+
+(1) generate a function `norm_dataset()` that creates a dataset following a normal distribution x∼Normal[μ,σ]
+(2) generate a "norm_results_df" with fixed sample size of n=30 and 5,000 iterations
+
+```{r}
+norm_dataset = function(x) {
+  rnorm(n, x, sd)}
+
+norm_results_df = 
+  expand_grid(
+    sample_size = 30,
+    iteration = 1:50
+  ) %>% 
+  mutate(
+    estimate_df = map(sample_size, norm_dataset)
+  ) %>% 
+  unnest(estimate_df)
+
+
+## Alternative, fixing n, leaving mu free
+
+norm_dataset = function(n = 30, mu, sigma = 5) {
+  
+  norm_dataset = tibble(
+    x = rnorm(n, x, sd),
+  )
+  
+  norm_dataset %>% 
+    summarize(
+      mu_hat = mean(x),
+      sigma_hat = sd(x)
+    )
+}
+
+norm_results_df = 
+  expand_grid(
+    x = 0,
+    iteration = 1:50
+    ) %>% 
+  mutate(
+    estimate_df = map(x, norm_dataset)
+  ) %>% 
+  unnest(estimate_df)
+
+```
+
+
+
+
+```{r}
+
+## Niklas code
+
+n = 30
+sd = 5
+true_mean = 0:6
+
+dataset = function(x) {
+  rnorm(n, x, sd)}
+
+output = vector("list", length = 50)
+inter <- data.frame(matrix(ncol = 2, nrow = 50))
+colnames(inter) <- c('true_mean', 'p-value')
+
+combine_function = function(y){
+  inter2 = list()
+  for (i in 1:50) {
+    output[[i]] = dataset(y)
+    a = broom::tidy(t.test(output[[i]]))
+    inter[i,1] = a[[1]]
+    inter[i,2] = a[[3]]}
+  inter2 = rbind(inter2, inter)}
+
+final = map(true_mean, combine_function)
+```
+
+For each dataset, save μ̂and the p-value arising from a test of H:μ=0 using α=0.05
+Hint: to obtain the estimate and p-value, use broom::tidy to clean the output of t.test.
+
+Repeat the above for μ={1,2,3,4,5,6}, and complete the following:
+
+### Data visualization
+
+Make a plot showing the proportion of times the null was rejected (the power of the test) on the y axis and the true value of μ on the x axis. Describe the association between effect size and power.
+
+Make a plot showing the average estimate of μ̂
+ on the y axis and the true value of μ
+ on the x axis. 
+ 
+Make a second plot (or overlay on the first) the average estimate of μ̂
+ only in samples for which the null was rejected on the y axis and the true value of μ
+ on the x axis. 
+ 
+Is the sample average of μ̂ across tests for which the null is rejected approximately equal to the true value of μ? Why or why not?
+
+
+-------
+
+
+```{r}
+
+
+```
