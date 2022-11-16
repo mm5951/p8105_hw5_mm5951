@@ -253,23 +253,17 @@ power_plot = result_df %>%
 power_plot
 ```
 
-
-Describe the association between effect size and power ()
-
+The lower the mean, the lower the proportion of times that the null hypothesis was rejected. That means, there's a direct association between effect size and power. **REVIEW**
 
 
+Next, I make a two-pannel plot showing:
 
-Next, I make a plot showing the average estimate of μ̂
- on the y axis and the true value of μ
+* the average estimate of μ̂ on the y axis and the true value of μ on the x axis. 
+* the average estimate of μ̂ only in samples for which the null was rejected on the y axis and the true value of μ
  on the x axis. 
- 
-Make a second plot (or overlay on the first) the average estimate of μ̂
- only in samples for which the null was rejected on the y axis and the true value of μ
- on the x axis. 
- 
  
 ```{r}
-Comparison_plot = df_final %>%
+means_plot = result_df %>%
   group_by(true_mean) %>%
   summarize(mean_sample = mean(sample_mean)) %>%
   ggplot(aes(x = true_mean, y = mean_sample)) +
@@ -280,7 +274,8 @@ Comparison_plot = df_final %>%
   scale_x_continuous(limits = c(0,6), breaks = seq(0,6,1)) +
   scale_y_continuous(limits = c(-2,7), breaks = seq(-2,7,1)) +
   theme(plot.title = element_text(hjust = 0.5))
-Comparison_reject = df_final %>%
+
+means_reject = result_df %>%
   group_by(true_mean) %>%
   filter(p.value < 0.05) %>%
   summarize(mean_sample = mean(sample_mean)) %>%
@@ -292,16 +287,9 @@ Comparison_reject = df_final %>%
   scale_x_continuous(limits = c(0,6), breaks = seq(0,6,1)) +
   scale_y_continuous(limits = c(-2,7), breaks = seq(-2,7,1)) +
   theme(plot.title = element_text(hjust = 0.5))
-Comparison_plot + Comparison_reject
+
+means_plot + means_reject
 ```
 
-Is the sample average of μ̂ across tests for which the null is rejected approximately equal to the true value of μ? Why or why not?
+**PENDING** Is the sample average of μ̂ across tests for which the null is rejected approximately equal to the true value of μ? Why or why not?
 
-
--------
-
-
-```{r}
-
-
-```
