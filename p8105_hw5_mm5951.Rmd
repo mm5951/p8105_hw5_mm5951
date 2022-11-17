@@ -100,7 +100,9 @@ baltimore_test = prop.test(
   n = baltimore_summary %>% pull(n)) 
 
 baltimore_test %>% 
-  broom::tidy()
+  broom::tidy() %>% 
+  select(estimate, conf.low, conf.high) %>%
+  knitr::kable(digits = 3)
 ```
 
 As a result of this test, Baltimore, MD has a proportion of 0.646 (0.628, 0.663) unresolved crimes.
