@@ -211,7 +211,7 @@ colnames(inter) <- c('true_mean', 'sample_mean', 'p-value')
 
 combine_function = function(y){
   inter2 = list()
-  for (i in 1:50) {
+  for (i in 1:5000) {
     output[[i]] = norm_dataset(y)
     a = broom::tidy(t.test(output[[i]]))
     inter[i,1] = y
@@ -242,7 +242,7 @@ Next, I make a plot showing the **proportion of times the null (H0) was rejected
 ```{r}
 power_plot = result_df %>%
   group_by(true_mean) %>% 
-  summarize(power = sum(reject)/50) %>% 
+  summarize(power = sum(reject)/5000) %>% 
   ggplot(aes(x = true_mean, y = power)) +
   geom_point(aes(colour = true_mean)) +
   geom_line(alpha = 0.3) +
